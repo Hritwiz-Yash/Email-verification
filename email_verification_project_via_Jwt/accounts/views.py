@@ -8,6 +8,13 @@ from .utils import generate_otp, send_verification_email
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from rest_framework.permissions import IsAuthenticated
+
+
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 class EmailVerificationAPIView(APIView):
     def post(self, request):
@@ -49,12 +56,18 @@ class VerifyEmailAPIView(APIView):
                 user.email_verified = True
                 user.save()
                 cache.delete(email)  # Invalidate the OTP after successful verification
-                return Response({"message": "Email verified successfully!"}, status=status.HTTP_200_OK)
+                
+                # Generate JWT token
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    "message": "Email verified successfully!",
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                }, status=status.HTTP_200_OK)
             except User.DoesNotExist:
-                return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"error": "User  not found."}, status=status.HTTP_404_NOT_FOUND)
 
         return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class VerifyEmailWithOtpAPIView(APIView):
     def post(self, request):
@@ -73,8 +86,23 @@ class VerifyEmailWithOtpAPIView(APIView):
                 user.email_verified = True
                 user.save()
                 cache.delete(email)  # Invalidate the OTP after successful verification
-                return Response({"message": "Email verified successfully!"}, status=status.HTTP_200_OK)
+                
+                # Generate JWT token
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    "message": "Email verified successfully!",
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                }, status=status.HTTP_200_OK)
             except User.DoesNotExist:
-                return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"error": "User  not found."}, status=status.HTTP_404_NOT_FOUND)
 
         return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+    
+class CustomTokenObtainPairView(TokenObtainPairView):
+
+    pass
+
+class CustomTokenRefreshView(TokenRefreshView):
+    pass
+
